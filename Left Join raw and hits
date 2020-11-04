@@ -1,35 +1,51 @@
+# This scripts will:
+# a. create a left join between the raw data (songs) and the hits
+# b. filter out all those observations where 'year' is not in 'year' hits table
+
 import pandas as pd 
-import numpy as np
-from pandas import ExcelWriter
+import numpy as np 
+from pandas import ExcelWriter 
 
-#Defining the paths
-path_raw= r"C:\\Users\\giovanni\\Desktop\\Test\raw_test.xlsx"
-path_hits = r"C:\\Users\\giovanni\\Desktop\\Test\hits.xlsx"
+#defining the paths to the datasets 
+path_raw = r"C:\\Users\\giovanni\\Desktop\\Spotify Final Project\data.xlsx"
+path_hits =  r"C:\\Users\\giovanni\\Desktop\\Spotify Final Project\datasets_456949_861300_top10s.xlsx"
 
-#Reading the data
-raw = pd.read_excel(path_raw) 
-hits  =pd.read_excel(path_hits)
+#assigning the dataframe to the related variables 
+raw = pd.read_excel(path_raw)
+hits = pd.read_excel(path_hits)
 
-#Saving only titles into hits_names
-hits_names = hits['title']
+#Dataset exploration
+print("Shape of Spotify data",raw.shape)
+print("Shape of Spotify Hits list",hits.shape)
+min_date= min(hits['year'])
+max_date= max(hits['year'])
+count_raw = raw.shape[0]
+print("Date range for Hits dataset: \n", min_date, '--',max_date)
 
-#Left joining raw and hits_names
-merged = pd.merge(raw, hits_names, left_on = 'name', right_on = 'title', how ='left') 
-print(merged)
+##First step###
+print("Filtering out from the raw data years which do not fall into the hits year range")
+year_list = [] 
+for year in hits['year']: 
+    year_list.append(year)
 
-#Writing to excel
-with pd.ExcelWriter (r"C:\\Users\\giovanni\\Desktop\\Test\test_lookup.xlsx") as writer: 
-    merged.to_excel(writer, sheet_name = 'test', index = False)
+raw_filtered = raw[raw['year'].isin(year_list)]
+count_raw_filtered=raw_filtered.shape[0]
+raw_diff= count_raw -count_raw_filtered
+print("Total deleted observations: ", raw_diff)
 
-#Testing if possible to convert to boolean ['title'] col: 
+#I want to join the 2 tables on titles and name
+#I will first drop all the columns from hits that are not relevant and keep only the titles
+#For every match, we will have a hit
+#Note: songs in raw are 'name' whereas in hits they are 'title'
+hits=hits['title']
 
-path_merged = r"C:\\Users\\giovanni\\Desktop\\Test\test_lookup.xlsx"
+df_merged = pd.merge(raw_filtered, hits, left_on='name', right_on='title',how = 'left')
 
-read_merged = pd.read_excel(path_merged)
-read_merged['title'].fillna('',inplace = True)
+#adding boolean values to Hits 
+#First I need to replace NaN
+df_merged['title'].fillna('', inplace = True)
+df_merged['Hits'] = np.where(df_merged['title']=='',False,True)
 
-read_merged['Hits'] = np.where(read_merged['title']== '', False, True)
-
-
-with pd.ExcelWriter (r"C:\\Users\\giovanni\\Desktop\\Test\hits_test.xlsx")as writer:
-    read_merged.to_excel(writer, index = False)
+#Writing the new dataset 
+with pd.ExcelWriter(r"C:\\Users\\giovanni\\Desktop\\Spotify Final Project\\Mario_Iuliano_FP\raw_data_cleaned.xlsx") as writer:
+    df_merged.to_excel(writer,index= False )
