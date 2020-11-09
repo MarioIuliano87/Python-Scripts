@@ -1,0 +1,79 @@
+import pandas as pd 
+import numpy as np 
+import matplotlib.pyplot as plt
+
+
+
+
+path = r'C:\\Users\\giovanni\\Desktop\\FP_mnist\\hr_churn\\hr_emp_attrition_original.xlsx'
+
+#Store dataset into df
+df = pd.read_excel(path)
+
+################### Data Exploration ###################
+print(df.shape)
+print(df.info())
+dtype_summary = df.dtypes.value_counts()
+dtype_summary = pd.Series(dtype_summary)
+print("Distribution of Data Types: \n",dtype_summary)
+#I want to plot a table ... 
+
+
+#Check for NA
+check_for_na = df.isnull().values.any()
+print("Are there any null values?: ",check_for_na)
+
+#Calculating % of each class
+label_distribution = pd.Series(df['Attrition']).value_counts()
+no_class = label_distribution[0]
+yes_class =label_distribution[1]
+total_entries = label_distribution[0]+label_distribution[1]
+no_percent = label_distribution[0]/total_entries
+yes_percent = label_distribution[1]/total_entries
+print("{0:.0f}%".format(no_percent*100))
+print("{0:.0f}%".format(yes_percent*100))
+
+#Bar Plot
+x=['No','Yes']
+y  = [no_class,yes_class]
+fig = plt.figure(figsize = (9,6))
+ax1 = plt.subplot(111)
+ax1.bar(x, y, color =('#bd640d','#095aba'))
+for index,value in enumerate(y):
+    ax1.annotate(value, xy=(index,value))
+plt.show()
+
+# I wanto see how many unique values there are in each obj columns
+attrition_values = df['Attrition'].value_counts()
+business_travel_values = df['BusinessTravel'].value_counts()
+department_values = df['Department'].value_counts()
+education_field_values = df['EducationField'].value_counts()
+gender_values = df['Gender'].value_counts()
+job_role_values =  df['JobRole'].value_counts()
+marital_status_values = df['MaritalStatus'].value_counts()
+print("")
+print(attrition_values)
+print("")
+print(business_travel_values)
+print("")
+print(department_values)
+print("")
+print(education_field_values)
+print("")
+print(gender_values)
+print("")
+print(job_role_values)
+print("")
+print(marital_status_values)
+#print("test", df['Department'].nunique())
+
+#Converting the label 'Attrition' into numerical 
+def converter(column): 
+    if column == 'Yes': 
+        return 1 
+    else: 
+        return 0
+
+df['Attrition'] = df['Attrition'].apply(converter)
+
+#Apply Smote Upsampling
