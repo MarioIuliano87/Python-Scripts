@@ -1,0 +1,36 @@
+
+#Gender distribution
+
+#attrition = df[(df['Attrition']=='Yes')]
+#no_attrition = df[(df['Attrition']=='No')]
+
+
+#trace1 = go.Pie(values = attrition['Gender'].value_counts().values.tolist(), 
+                #labels = attrition['Gender'].value_counts().keys().tolist())
+
+#trace2 = go.Pie(values = no_attrition['Gender'].value_counts().values.tolist(), 
+                #labels = no_attrition['Gender'].value_counts().keys().tolist())
+
+#fig  = go.Figure(data = [trace1,trace2])
+#py.iplot(fig)
+
+
+#values = df['Gender'].value_counts().tolist()
+#df['Gender'].value_counts().plot.bar(color =('#2680eb','#e34850'))
+#plt.show()
+
+#ax = sns.boxplot(x = df['MonthlyIncome'],y = df['JobRole'])
+#medians = df.groupby(['JobRole'])['MonthlyIncome'].median().values
+#median_labels = [str(np.round(s, 2)) for s in medians]
+#print(median_labels)
+
+#pos = range(len(medians))
+#for tick, label in zip(pos,ax.get_xticklabels()):
+#    ax.text(pos[tick],medians[tick]+0.03,median_labels[tick],
+#                  verticalalignment='top', size='smaller', color='b', weight='bold')
+#plt.show()
+
+#Plotting Correlation Heatmap
+
+
+#dropping variables which are not contributing to the analysis
