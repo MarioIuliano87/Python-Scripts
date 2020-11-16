@@ -1,0 +1,51 @@
+## Implementing Random Forest With Cross-Validation ## 
+rfc = RandomForestClassifier(n_estimators = 350, criterion = 'entropy', max_features = 1)# Parameters were returned by the grid search in the for in loop below
+accuracy_scores = cross_val_score(rfc, X_scaled,Y, cv = 5, scoring = 'accuracy')
+print("Cross-Validation Accuracy Score: {}".format(accuracy_scores))
+print("Cross-Validation Accuracy AVG Score: {}".format(accuracy_scores.mean()))
+precision_scores = cross_val_score(rfc, X_scaled,Y, cv = 5, scoring = 'precision')
+print("Cross-Validation Precision Score: {}".format(precision_scores))
+print("Cross-Validation Precision AVG Score: {}".format(precision_scores.mean()))
+recall_scores = cross_val_score(rfc, X_scaled,Y, cv = 5, scoring = 'recall')
+print("Cross-Validation Recall Score: {}".format(recall_scores))
+print("Cross-Validation Recall AVG Score: {}".format(recall_scores.mean()))
+
+rfc_results= {'Accuracy':accuracy_scores.mean(), 'Precision':precision_scores.mean(),'Recall':recall_scores.mean()}
+keys =rfc_results.keys()
+values = rfc_results.values()
+plt.bar(keys,values)
+plt.show()
+
+### Confusion Matrix ### 
+y_pred = cross_val_predict(rfc,X_scaled,Y, cv = 5)
+conf_mat = confusion_matrix(Y,y_pred)
+plt.figure(figsize=(8,6))
+sns.heatmap(conf_mat,annot=True)
+plt.title("Confusion_matrix")
+plt.xlabel("Predicted Class")
+plt.ylabel("Actual class")
+plt.show()
+print('Confusion matrix: \n', conf_mat)
+print('TP: ', conf_mat[1,1])
+print('TN: ', conf_mat[0,0])
+print('FP: ', conf_mat[0,1])
+print('FN: ', conf_mat[1,0])
+
+## Implementing GridSearch ## 
+best_score = 0
+##split data into train+validation set and test set 
+X_trainval, X_test, Y_trainval, Y_test = train_test_split(X_scaled, Y, random_state = 0)
+for n_estimators in[100,200, 250, 300, 350, 400, 450]:
+    for max_features in [1,2,3,4,5,6,7]:
+        rfc = RandomForestClassifier(n_estimators = n_estimators,max_features = max_features)
+        scores = cross_val_score(rfc,X_trainval, Y_trainval, cv = 5)
+        score = np.mean(scores)
+        if score > best_score: 
+            best_score = score
+            best_parameters = {'n_estimators': n_estimators,'max_features': max_features}
+rfc = RandomForestClassifier(**best_parameters)
+rfc.fit(X_trainval, Y_trainval)
+test_score = rfc.score(X_test, Y_test)
+print("Best par", best_parameters)
+print("Test set score wih best par", test_score)
+
