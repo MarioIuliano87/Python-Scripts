@@ -1,0 +1,311 @@
+import pandas as pd 
+import numpy as np 
+import matplotlib.pyplot as plt
+from pandas import ExcelWriter
+import plotly.graph_objs as go
+import plotly.offline as offline
+import plotly.figure_factory as ff
+import seaborn as sns
+import mglearn
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import tree
+from sklearn import metrics
+from pprint import pprint
+from sklearn.metrics import classification_report
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import confusion_matrix
+
+path = r'C:\\Users\\giovanni\\Desktop\\FP_mnist\\hr_churn\\hr_emp_attrition_original.xlsx'
+
+#Store dataset into df
+df = pd.read_excel(path)
+
+################### Data Exploration ###################
+print(df.shape)
+print(df.info())
+print(df.describe())
+dtype_summary = df.dtypes.value_counts()
+dtype_summary = pd.Series(dtype_summary)
+
+#Writing data set description into excel
+with pd.ExcelWriter (r'C:\\Users\\giovanni\\Desktop\\FP_mnist\\hr_churn\\hr_employee_attrition_description.xlsx') as writer: 
+    df.describe().to_excel(writer,sheet_name = 'description')
+    dtype_summary.to_excel(writer,sheet_name = 'dtype_distribution',header = False)
+print("Distribution of Data Types: \n",dtype_summary)
+
+#### Challenge #### = #I want to plot a table ... 
+
+
+#Check for NA
+check_for_na = df.isnull().values.any()
+print("Null values within dataset: ",check_for_na)
+
+#Calculating % of each class
+label_distribution = pd.Series(df['Attrition']).value_counts()
+no_class = label_distribution[0]
+yes_class =label_distribution[1]
+total_entries = label_distribution[0]+label_distribution[1]
+no_percent = label_distribution[0]/total_entries
+yes_percent = label_distribution[1]/total_entries
+print("{0:.0f}%".format(no_percent*100))
+print("{0:.0f}%".format(yes_percent*100))
+
+######################################################################################## Visualisations #######################################################################################
+## The goal of data viz is to better understand what is behind the data (scenario description)
+#Bar Plot Attrition
+x=['No','Yes']
+y  = [no_class,yes_class]
+fig = plt.figure(figsize = (9,6))
+ax = plt.subplot(111)
+ax.bar(x, y, color =('#2680eb','#e34850'))
+for index,value in enumerate(y):
+    ax.annotate(value, xy=(index,value))
+plt.show()
+
+#Pie Chart Distribution of Attrition
+labels = 'No', 'Yes'
+x_percent = [no_class,yes_class]
+fig_pie_chart = plt.figure(figsize = (9,6))
+fig_pie_chart, ax1 = plt.subplots()
+ax1.pie(x_percent, labels = labels,colors =('#2680eb','#e34850') ,autopct = '%1.0f%%',startangle = 90)
+ax1.axis('equal')
+plt.show()
+
+#Gender distribution
+gender_count = pd.crosstab(df['Gender'], df['Attrition'])
+gender_count.plot.bar(stacked = True,color =('#2680eb','#e34850'))
+plt.show()
+
+#Job Role Distribution
+job_role_count = pd.crosstab(df['JobRole'], df['Attrition'])
+job_role_count.plot.bar(stacked = True,color =('#2680eb','#e34850'))
+plt.show()
+
+#Job Role and Gender 
+cross_tab = pd.crosstab(df['JobRole'], df['Gender'])
+cross_tab.plot.bar(stacked = True, color =('#FFC0CB','#2680eb'))
+plt.show()
+
+#Statistics about job satisfaction
+job_satisfaction_avg = df['JobSatisfaction'].median()
+job_satisfaction_avg_box_plot = sns.boxplot(y= df['JobSatisfaction'])
+plt.show()
+
+########### Statistics about monthly salary ###########
+
+#Monthly salary by Gender
+palette = {"Male": "#2680eb", "Female":"#FFC0CB"}
+sns.boxplot(y = df['Gender'],x = df['MonthlyIncome'],palette = palette)
+plt.show()
+
+#Box Plot of Monthly Income group by gender 
+ax = sns.boxplot(y = df['MonthlyIncome'],x = df['Gender'],palette = palette)
+medians = df.groupby(['Gender'])['MonthlyIncome'].median().values
+median_labels = [str(np.round(s, 2)) for s in medians]
+print(median_labels)
+pos = range(len(medians))
+for tick, label in zip(pos,ax.get_xticklabels()):
+    ax.text(pos[tick],medians[tick]+0.03,median_labels[tick],
+                  horizontalalignment='center', size='x-large', color='w', weight='bold')
+plt.show()
+
+#Salary By Job Roles 
+ax = sns.boxplot(x = df['MonthlyIncome'],y = df['JobRole'])
+medians = df.groupby(['JobRole'])['MonthlyIncome'].median().values
+median_labels = [str(np.round(s, 2)) for s in medians]
+print(median_labels)
+pos = range(len(medians))
+for tick, label in zip(pos,ax.get_xticklabels()):
+    ax.text(pos[tick],medians[tick]+0.03,median_labels[tick],
+                  verticalalignment='top', size='smaller', color='b', weight='bold')
+plt.show()
+
+##################################################
+### To do: 
+    #1: Add text to each value and column 
+    #2: Attrition rate by jobsatisfaction
+    #3: Plot age distribution
+    #3: Sort columns 
+    #4: What is the gender/job role with the highest attrition rate? 
+#################################################
+
+########Correlation HeatMap########
+#Plotting Correlation Heatmap
+#Converting categorical into numerical variables 
+def converter (col): 
+    if col == 'Yes':
+        return 1 
+    else: 
+        return 0 
+#dropping variables which are not contributing to the analysis
+df['Attrition'] = df['Attrition'].apply(converter)
+df['OverTime'] = df['OverTime'].apply(converter)
+categorical_features = ['BusinessTravel','Department','EducationField','Gender','JobRole','MaritalStatus']
+
+# Correlation Heatmap for feature selection
+corrs = df.corr()
+figure = ff.create_annotated_heatmap(
+        z = corrs.values,
+        x = list(corrs.columns),
+        y = list(corrs.index),
+        annotation_text = corrs.round(2).values,
+        showscale = True)
+offline.plot(figure, filename = 'corrheatmap.html')
+
+######################################################################################## Random Forest with Cross Validation #######################################################################################
+
+df = df.drop(['Over18','EmployeeNumber','StandardHours','EmployeeCount','MonthlyRate','NumCompaniesWorked','PerformanceRating','Age','DistanceFromHome','YearsAtCompany'],axis = 1)
+categorical_features = ['BusinessTravel','Department','EducationField','Gender','JobRole','MaritalStatus']
+df_ml = pd.get_dummies(df, columns = categorical_features)
+
+#Dividing the data in label and features 
+X = df_ml.drop(['Attrition'],axis = 1 )#Features
+Y = df_ml['Attrition']#Label
+
+#Normalise dataset 
+feature_scaler = StandardScaler()
+X_scaled = feature_scaler.fit_transform(X)
+
+
+#I want to up-sample attrition = 'Yes' stored in Y. I will perform the process only on the train set
+print("Number of observations in each class before oversampling (training data): \n", pd.Series(Y).value_counts())
+smote = SMOTE(random_state = 101)
+X_scaled, Y = smote.fit_sample(X_scaled, Y)
+print("Number of observations in each class after oversampling (training data): \n", pd.Series(Y).value_counts())
+
+#Split into train and test
+X_train, X_test, Y_train, Y_test = train_test_split( X_scaled, Y, test_size = 0.3, random_state = 100)
+
+#Implementing random forest
+rfc = RandomForestClassifier(criterion = 'entropy')
+rfc.fit(X_train,Y_train)
+Y_pred = rfc.predict(X_test)
+print("Prediction Accuracy: ", metrics.recall_score(Y_test, Y_pred))
+conf_mat = metrics.confusion_matrix(Y_test, Y_pred)
+plt.figure(figsize=(8,6))
+sns.heatmap(conf_mat,annot=True)
+plt.title("Confusion_matrix")
+plt.xlabel("Predicted Class")
+plt.ylabel("Actual class")
+plt.show()
+print('Confusion matrix: \n', conf_mat)
+print('TP: ', conf_mat[1,1])
+print('TN: ', conf_mat[0,0])
+print('FP: ', conf_mat[0,1])
+print('FN: ', conf_mat[1,0])
+
+
+#Grid search implementation 
+param_grid = {'n_estimators':[100,200, 250, 300, 350, 400, 450],
+               'max_features':[1,2,3,4,5,6,7]}
+grid_search = GridSearchCV(RandomForestClassifier(), param_grid, scoring = 'recall',cv = 5, 
+                           return_train_score = True)
+grid_search.fit(X_train, Y_train)
+best_parameters = grid_search.best_params_
+print(best_parameters)
+print("Test Set Score: {:.2f}".format(grid_search.score(X_test, Y_test)))
+
+
+#Test random forest with new hyperparameters 
+#
+rfc = RandomForestClassifier(n_estimators = 400, criterion = 'entropy', max_features = 5)#Best parameters combination
+rfc.fit(X_train,Y_train)
+Y_pred = rfc.predict(X_test)
+print("Prediction Accuracy: ", metrics.recall_score(Y_test, Y_pred))
+conf_mat = metrics.confusion_matrix(Y_test, Y_pred)
+plt.figure(figsize=(8,6))
+sns.heatmap(conf_mat,annot=True)
+plt.title("Confusion_matrix")
+plt.xlabel("Predicted Class")
+plt.ylabel("Actual class")
+plt.show()
+print('Confusion matrix: \n', conf_mat)
+print('TP: ', conf_mat[1,1])
+print('TN: ', conf_mat[0,0])
+print('FP: ', conf_mat[0,1])
+print('FN: ', conf_mat[1,0])
+
+
+################################################################## Gradient Boosting Classifier ####################################
+#Implement GBRT
+#
+gbrt= GradientBoostingClassifier(n_estimators = 200,max_depth=4,learning_rate = 1)# best performer
+gbrt.fit(X_train, Y_train)
+Y_pred = gbrt.predict(X_test)
+print("Prediction Recall: ", metrics.recall_score(Y_test, Y_pred))
+conf_mat = metrics.confusion_matrix(Y_test, Y_pred)
+plt.figure(figsize=(8,6))
+sns.heatmap(conf_mat,annot=True)
+plt.title("Confusion_matrix")
+plt.xlabel("Predicted Class")
+plt.ylabel("Actual class")
+plt.show()
+print('Confusion matrix: \n', conf_mat)
+print('TP: ', conf_mat[1,1])
+print('TN: ', conf_mat[0,0])
+print('FP: ', conf_mat[0,1])
+print('FN: ', conf_mat[1,0])
+
+
+#Implementing Grid Search CV
+#
+param_grid = {'max_depth':[1,3,4,5],
+              'n_estimators':[100,250, 350],
+              'learning_rate':[0.1,0.5,1]}
+grid_search = GridSearchCV(GradientBoostingClassifier(), param_grid, scoring = 'recall',cv = 5, 
+                           return_train_score = True)
+grid_search.fit(X_train, Y_train)
+best_parameters = grid_search.best_params_
+print(best_parameters)
+print("Test Set Score: {:.2f}".format(grid_search.score(X_test, Y_test)))
+
+#Test gradient boosting classifier with new hyperparameters 
+#
+gbrt= GradientBoostingClassifier(n_estimators = 200,max_depth=4,learning_rate =1)
+gbrt.fit(X_train, Y_train)
+Y_pred = gbrt.predict(X_test)
+print("Prediction Recall: ", metrics.recall_score(Y_test, Y_pred))
+conf_mat = metrics.confusion_matrix(Y_test, Y_pred)
+plt.figure(figsize=(8,6))
+sns.heatmap(conf_mat,annot=True)
+plt.title("Confusion_matrix")
+plt.xlabel("Predicted Class")
+plt.ylabel("Actual class")
+plt.show()
+print('Confusion matrix: \n', conf_mat)
+print('TP: ', conf_mat[1,1])
+print('TN: ', conf_mat[0,0])
+print('FP: ', conf_mat[0,1])
+print('FN: ', conf_mat[1,0])
+
+#Auc RFCR
+fpr,tpr,thresholds = roc_curve(Y_test, rfc.decision_function(X_test))
+plt.plot(fpr,tpr, label='GBRT')
+plt.show()
+print("AUC GBRT: {:.3f}".format(roc_auc_score(Y_test, rfc.decision_function(X_test))))
+
+#Auc GBRT
+fpr,tpr,thresholds = roc_curve(Y_test, gbrt.decision_function(X_test))
+plt.plot(fpr,tpr, label='GBRT')
+plt.show()
+print("AUC GBRT: {:.3f}".format(roc_auc_score(Y_test, gbrt.decision_function(X_test))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
