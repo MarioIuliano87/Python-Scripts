@@ -4,3 +4,9 @@ values = ["Hi", "I", "am", "John"]
 for i in keys:
         dicts[i] = values[i]
 print(dicts)
+
+#Convert categorical features into numerical 
+#Business Travel
+BusinessTravel= df.BusinessTravel.unique()
+BusinessTravel_dict = {val: key for key,val in enumerate(BusinessTravel)}
+df['BusinessTravel'] = df['BusinessTravel'].map(BusinessTravel_dict)
