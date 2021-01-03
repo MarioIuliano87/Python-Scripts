@@ -1,0 +1,33 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+#Defining list
+my_list = [18,10,15,13,17,15,12,15,18,16,11]
+
+#Sort the list ascending order
+my_list.sort()
+
+#List mean
+mean = np.mean(my_list)
+
+#List Median
+median = np.median(my_list)
+
+#List Mode
+####Define a dictionary where the key is the list element and the value is the occurrence
+occurrences = {}
+for x in my_list:
+    my_list.count(x)
+    occurrences[x] = my_list.count(x)
+max_occurrences = max(occurrences.values())#Returns the maximum occurrence value (3)
+mode = max(occurrences, key = occurrences.get)
+
+print(mode)
+print(mean)
+print(median)
+
+#plotting the frequency of each element
+###Defining the key and values and 2 separate variable
+plt.bar(range(len(occurrences)),occurrences.values(),align= 'center')
+plt.xticks(range(len(occurrences)), list(occurrences.keys()))
+plt.show()
