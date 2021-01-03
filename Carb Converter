@@ -1,0 +1,25 @@
+#Define Carb List#
+
+meals = {'Apple':11.3,
+             'Banana':15.4,
+             'Bread 01':48.5,
+             'Orange':7.8,
+             'Tomatoes':3.4}
+
+#Step 1: What to do you want to do?
+    # 1: Insert New Meal
+    # 2: Count
+
+while True:
+    try:
+        user_selection = input("Press 1 to Calculate Carbs or Press 2 to insert new entries in the table: ")
+        user_selection = int(user_selection)
+        break
+    except ValueError:
+        print("Not valid value")
+if user_selection == 1:
+    insert_meal = input("Inset new meal name: ")
+    insert_weight = float(input("Carbs per 100 gr: "))
+    meals[insert_meal] = insert_weight
+
+
